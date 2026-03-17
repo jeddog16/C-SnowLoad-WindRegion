@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace AhdApi.Services;
 
 public class NmeaService
@@ -7,7 +9,7 @@ public class NmeaService
         if (string.IsNullOrWhiteSpace(coord) || string.IsNullOrWhiteSpace(hemi))
             throw new ArgumentException("Missing NMEA coordinate or hemisphere");
 
-        double value = double.Parse(coord, System.Globalization.CultureInfo.InvariantCulture);
+        double value = double.Parse(coord, CultureInfo.InvariantCulture);
         int degrees = (int)(value / 100);
         double minutes = value - (degrees * 100);
         double dec = degrees + (minutes / 60.0);
@@ -46,8 +48,8 @@ public class NmeaService
 
         double lat = NmeaToDecimal(latStr, latHemi);
         double lon = NmeaToDecimal(lonStr, lonHemi);
-        double altAboveGeoidM = double.Parse(altStr, System.Globalization.CultureInfo.InvariantCulture);
-        double geoidSepM = double.Parse(geoidSepStr, System.Globalization.CultureInfo.InvariantCulture);
+        double altAboveGeoidM = double.Parse(altStr, CultureInfo.InvariantCulture);
+        double geoidSepM = double.Parse(geoidSepStr, CultureInfo.InvariantCulture);
         double hEllipsoidM = altAboveGeoidM + geoidSepM;
 
         return new Dictionary<string, double>

@@ -11,15 +11,21 @@ public class AhdController : ControllerBase
     private readonly DemService _demService;
     private readonly GnssService _gnssService;
     private readonly NmeaService _nmeaService;
+    private readonly WindRegionService _windRegionService;
+    private readonly SnowRegionService _snowRegionService;
 
     public AhdController(
         DemService demService,
         GnssService gnssService,
-        NmeaService nmeaService)
+        NmeaService nmeaService,
+        WindRegionService windRegionService,
+        SnowRegionService snowRegionService)
     {
         _demService = demService;
         _gnssService = gnssService;
         _nmeaService = nmeaService;
+        _windRegionService = windRegionService;
+        _snowRegionService = snowRegionService;
     }
 
     [HttpGet("")]
@@ -34,7 +40,8 @@ public class AhdController : ControllerBase
                 "/health",
                 "/ahd",
                 "/ahd_gnss",
-                "/ahd_from_nmea_gga"
+                "/ahd_from_nmea_gga",
+                "/wind_debug"
             }
         });
     }
@@ -110,6 +117,27 @@ public class AhdController : ControllerBase
             };
 
             return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                error = ex.Message,
+                detail = ex.ToString()
+            });
+        }
+    }
+
+    [HttpGet("wind_debug")]
+    public IActionResult WindDebug()
+    {
+        try
+        {
+            return Ok(new
+            {
+                wind = _windRegionService.DebugInfo(),
+                snow = _snowRegionService.DebugInfo()
+            });
         }
         catch (Exception ex)
         {

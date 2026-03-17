@@ -30,6 +30,29 @@ public class SnowRegionService
         return null;
     }
 
+    public object DebugInfo()
+    {
+        try
+        {
+            var boxes = LoadBoxes();
+            return new
+            {
+                fileExists = File.Exists(_settings.SnowRegionXlsxPath),
+                path = _settings.SnowRegionXlsxPath,
+                boxCount = boxes.Count
+            };
+        }
+        catch (Exception ex)
+        {
+            return new
+            {
+                fileExists = File.Exists(_settings.SnowRegionXlsxPath),
+                path = _settings.SnowRegionXlsxPath,
+                error = ex.Message
+            };
+        }
+    }
+
     private List<SnowRegionBox> LoadBoxes()
     {
         if (_boxes != null) return _boxes;

@@ -23,38 +23,134 @@ public class DemService
 
     public async Task<AhdResponse> SampleBestDemAsync(double lat, double lon, bool debug, bool requireLidar)
     {
-        double? elevation = await SampleGaSrtmAsync(lat, lon);
+        var attempts = new List<Dictionary<string, object>>();
 
-        if (elevation == null)
-            throw new Exception("Could not get DEM elevation from GA SRTM.");
-
-        var resp = new AhdResponse
+        // 1) Try GA LiDAR first
+        var lidarAttempt = new Dictionary<string, object>
         {
-            CodeVersion = "csharp-port-1.0.0",
-            Lat = lat,
-            Lon = lon,
-            AhdM = elevation,
-            Method = "dem",
-            VerticalDatum = "AHD",
-            Source = "ga-srtm",
-            SourceType = "dem",
-            Upstream = _settings.GaSrtmIdentifyUrl
+            ["source"] = "ga-lidar",
+            ["upstream"] = _settings.GaLidarIdentifyUrl
         };
 
-        _regionService.AddRegionInfo(resp);
-
-        if (debug)
+        try
         {
-            resp.Extra = new Dictionary<string, object>
+            double? lidarElevation = await SampleArcGisIdentifyAsync(_settings.GaLidarIdentifyUrl, lat, lon);
+
+            if (lidarElevation.HasValue)
             {
-                ["debug"] = "Using GA SRTM only in first implementation."
-            };
+                lidarAttempt["success"] = true;
+                lidarAttempt["elevation"] = lidarElevation.Value;
+                attempts.Add(lidarAttempt);
+
+                var resp = new AhdResponse
+                {
+                    CodeVersion = "csharp-port-1.0.0",
+                    Lat = lat,
+                    Lon = lon,
+                    AhdM = lidarElevation.Value,
+                    Method = "dem",
+                    VerticalDatum = "AHD",
+                    Source = "ga-lidar",
+                    SourceType = "dem",
+                    Upstream = _settings.GaLidarIdentifyUrl
+                };
+
+                _regionService.AddRegionInfo(resp);
+
+                if (debug)
+                {
+                    resp.Extra = new Dictionary<string, object>
+                    {
+                        ["attempts"] = attempts
+                    };
+                }
+
+                return resp;
+            }
+
+            lidarAttempt["success"] = false;
+            lidarAttempt["reason"] = "No elevation returned.";
+            attempts.Add(lidarAttempt);
+        }
+        catch (Exception ex)
+        {
+            lidarAttempt["success"] = false;
+            lidarAttempt["reason"] = ex.Message;
+            attempts.Add(lidarAttempt);
         }
 
-        return resp;
+        // 2) If lidar is required, stop here
+        if (requireLidar)
+        {
+            throw new Exception(JsonSerializer.Serialize(new
+            {
+                error = "Lidar was required, but no LiDAR source returned an elevation.",
+                attempts
+            }));
+        }
+
+        // 3) Fall back to GA SRTM
+        var srtmAttempt = new Dictionary<string, object>
+        {
+            ["source"] = "ga-srtm",
+            ["upstream"] = _settings.GaSrtmIdentifyUrl
+        };
+
+        try
+        {
+            double? srtmElevation = await SampleArcGisIdentifyAsync(_settings.GaSrtmIdentifyUrl, lat, lon);
+
+            if (srtmElevation.HasValue)
+            {
+                srtmAttempt["success"] = true;
+                srtmAttempt["elevation"] = srtmElevation.Value;
+                attempts.Add(srtmAttempt);
+
+                var resp = new AhdResponse
+                {
+                    CodeVersion = "csharp-port-1.0.0",
+                    Lat = lat,
+                    Lon = lon,
+                    AhdM = srtmElevation.Value,
+                    Method = "dem",
+                    VerticalDatum = "AHD",
+                    Source = "ga-srtm",
+                    SourceType = "dem",
+                    Upstream = _settings.GaSrtmIdentifyUrl
+                };
+
+                _regionService.AddRegionInfo(resp);
+
+                if (debug)
+                {
+                    resp.Extra = new Dictionary<string, object>
+                    {
+                        ["attempts"] = attempts
+                    };
+                }
+
+                return resp;
+            }
+
+            srtmAttempt["success"] = false;
+            srtmAttempt["reason"] = "No elevation returned.";
+            attempts.Add(srtmAttempt);
+        }
+        catch (Exception ex)
+        {
+            srtmAttempt["success"] = false;
+            srtmAttempt["reason"] = ex.Message;
+            attempts.Add(srtmAttempt);
+        }
+
+        throw new Exception(JsonSerializer.Serialize(new
+        {
+            error = "No DEM source returned an elevation.",
+            attempts
+        }));
     }
 
-    private async Task<double?> SampleGaSrtmAsync(double lat, double lon)
+    private async Task<double?> SampleArcGisIdentifyAsync(string identifyUrl, double lat, double lon)
     {
         string geometry = JsonSerializer.Serialize(new
         {
@@ -71,7 +167,7 @@ public class DemService
             (lat + delta).ToString(CultureInfo.InvariantCulture));
 
         string url =
-            $"{_settings.GaSrtmIdentifyUrl}" +
+            $"{identifyUrl}" +
             $"?f=json" +
             $"&geometry={Uri.EscapeDataString(geometry)}" +
             $"&geometryType=esriGeometryPoint" +
@@ -87,13 +183,20 @@ public class DemService
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception($"GA SRTM request failed. Status={(int)response.StatusCode}. Body={json}");
+            throw new Exception($"Identify request failed. Status={(int)response.StatusCode}. Body={json}");
         }
 
         using JsonDocument doc = JsonDocument.Parse(json);
 
+        if (doc.RootElement.TryGetProperty("error", out JsonElement error))
+        {
+            throw new Exception($"ArcGIS service returned error: {error}");
+        }
+
         if (!doc.RootElement.TryGetProperty("results", out JsonElement results))
-            throw new Exception($"GA SRTM response did not contain 'results'. Raw JSON: {json}");
+        {
+            throw new Exception($"Response did not contain 'results'. Raw JSON: {json}");
+        }
 
         foreach (JsonElement result in results.EnumerateArray())
         {
@@ -117,6 +220,6 @@ public class DemService
             }
         }
 
-        throw new Exception($"Could not parse elevation from GA SRTM response. Raw JSON: {json}");
+        return null;
     }
 }

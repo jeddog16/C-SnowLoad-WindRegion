@@ -24,7 +24,8 @@ public class GnssService
             Method = "gnss",
             VerticalDatum = "AHD",
             Source = "placeholder",
-            SourceType = "gnss"
+            SourceType = "gnss",
+            Upstream = null
         };
 
         _regionService.AddRegionInfo(resp);

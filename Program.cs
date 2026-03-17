@@ -10,13 +10,13 @@ builder.Services.Configure<AppSettings>(
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton<NmeaService>();
 builder.Services.AddSingleton<SnowRegionService>();
 builder.Services.AddSingleton<WindRegionService>();
 builder.Services.AddSingleton<RegionService>();
 builder.Services.AddSingleton<GnssService>();
+
 builder.Services.AddHttpClient<DemService>();
 
 var app = builder.Build();
