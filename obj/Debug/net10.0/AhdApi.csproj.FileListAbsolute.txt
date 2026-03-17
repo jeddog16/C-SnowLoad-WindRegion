@@ -75,3 +75,7 @@ C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\obj\Debug\net10.0\r
 C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\obj\Debug\net10.0\AhdApi.pdb
 C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\obj\Debug\net10.0\AhdApi.genruntimeconfig.cache
 C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\obj\Debug\net10.0\ref\AhdApi.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\obj\Debug\net10.0\AhdApi.sourcelink.json
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Swashbuckle.AspNetCore.SwaggerUI.dll

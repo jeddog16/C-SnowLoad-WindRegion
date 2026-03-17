@@ -59,6 +59,10 @@
             "NetTopologySuite.IO.ShapeFile": {
               "target": "Package",
               "version": "[2.1.0, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[10.1.5, )"
             }
           },
           "imports": [
