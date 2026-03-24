@@ -1,6 +1,9 @@
+using System.Text;
 using AhdApi.Middleware;
 using AhdApi.Models;
 using AhdApi.Services;
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +19,6 @@ builder.Services.AddSingleton<SnowRegionService>();
 builder.Services.AddSingleton<WindRegionService>();
 builder.Services.AddSingleton<RegionService>();
 builder.Services.AddSingleton<GnssService>();
-
 builder.Services.AddHttpClient<DemService>();
 
 var app = builder.Build();

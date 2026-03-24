@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "EcdXHYOWCfI=",
+  "dgSpecHash": "Uduc0oFfhu0=",
   "success": true,
   "projectFilePath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
   "expectedPackageFiles": [
@@ -14,6 +14,7 @@
     "C:\\Users\\JedArmstrong\\.nuget\\packages\\microsoft.openapi\\2.4.1\\microsoft.openapi.2.4.1.nupkg.sha512",
     "C:\\Users\\JedArmstrong\\.nuget\\packages\\nettopologysuite\\2.6.0\\nettopologysuite.2.6.0.nupkg.sha512",
     "C:\\Users\\JedArmstrong\\.nuget\\packages\\nettopologysuite.features\\2.0.0\\nettopologysuite.features.2.0.0.nupkg.sha512",
+    "C:\\Users\\JedArmstrong\\.nuget\\packages\\nettopologysuite.io.esri.shapefile\\1.2.0\\nettopologysuite.io.esri.shapefile.1.2.0.nupkg.sha512",
     "C:\\Users\\JedArmstrong\\.nuget\\packages\\nettopologysuite.io.shapefile\\2.1.0\\nettopologysuite.io.shapefile.2.1.0.nupkg.sha512",
     "C:\\Users\\JedArmstrong\\.nuget\\packages\\rbush.signed\\4.0.0\\rbush.signed.4.0.0.nupkg.sha512",
     "C:\\Users\\JedArmstrong\\.nuget\\packages\\sixlabors.fonts\\1.0.0\\sixlabors.fonts.1.0.0.nupkg.sha512",

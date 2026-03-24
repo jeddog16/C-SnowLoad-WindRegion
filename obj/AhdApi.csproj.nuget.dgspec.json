@@ -56,6 +56,10 @@
               "target": "Package",
               "version": "[2.6.0, )"
             },
+            "NetTopologySuite.IO.Esri.Shapefile": {
+              "target": "Package",
+              "version": "[1.2.0, )"
+            },
             "NetTopologySuite.IO.ShapeFile": {
               "target": "Package",
               "version": "[2.1.0, )"
