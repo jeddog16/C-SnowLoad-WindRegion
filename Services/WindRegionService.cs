@@ -1,218 +1,128 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using AhdApi.Models;
-using Microsoft.Extensions.Options;
-using NetTopologySuite.Features;
+using System.Text.RegularExpressions;
 using NetTopologySuite.Geometries;
-using NetTopologySuite.IO.Esri.Shapefile;
+using NetTopologySuite.IO;
+using Microsoft.Extensions.Hosting;
 
 namespace AhdApi.Services;
 
 public class WindRegionService
 {
-    private readonly AppSettings _settings;
+    private readonly string dataPath;
     private readonly GeometryFactory _geometryFactory = new(new PrecisionModel(), 4326);
+    private readonly List<(Geometry Shape, IReadOnlyDictionary<string, object> Attributes)> _regions = new();
 
-    private bool _loaded;
-    private string? _extractDir;
-    private string? _shpPath;
-    private string? _regionField;
-    private List<IFeature> _features = new();
-    private List<string> _fieldNames = new();
-    private string? _loadError;
-
-    public WindRegionService(IOptions<AppSettings> options)
-    {
-        _settings = options.Value;
-    }
-
-    public string? Classify(double lat, double lon)
-    {
-        EnsureLoaded();
-
-        if (!string.IsNullOrWhiteSpace(_loadError))
-            throw new Exception(_loadError);
-
-        if (string.IsNullOrWhiteSpace(_regionField))
-            throw new Exception("Could not determine the wind region field from the shapefile.");
-
-        var point = _geometryFactory.CreatePoint(new Coordinate(lon, lat));
-
-        foreach (var feature in _features)
+        public WindRegionService(IHostEnvironment env)
         {
-            var geom = feature.Geometry;
-            if (geom == null)
-                continue;
+            dataPath = Path.Combine(env.ContentRootPath, "Data", "wind_regions_unzipped");
+            LoadWindRegions();
+        }
 
-            bool contains = false;
+        private void LoadWindRegions()
+        {
+            if (_regions.Count > 0) return;
 
-            try
+            if (!Directory.Exists(dataPath))
             {
-                contains = geom.Covers(point);
-            }
-            catch
-            {
-                try
+                // if zip exists, extract once
+                var zipFile = Path.Combine(Path.GetDirectoryName(dataPath) ?? ".", "wind_regions.zip");
+                if (File.Exists(zipFile))
                 {
-                    contains = geom.Contains(point);
-                }
-                catch
-                {
-                    contains = false;
+                    ZipFile.ExtractToDirectory(zipFile, dataPath, overwriteFiles: true);
                 }
             }
 
-            if (!contains)
-                continue;
+            if (!Directory.Exists(dataPath))
+                throw new DirectoryNotFoundException($"Wind region folder missing: {dataPath}");
 
-            var value = feature.Attributes[_regionField];
-            if (value == null)
+            var shpFile = Directory.EnumerateFiles(dataPath, "*.shp", SearchOption.AllDirectories).FirstOrDefault();
+            if (shpFile == null)
+                throw new FileNotFoundException("No .shp file found under " + dataPath);
+
+            using var reader = new ShapefileDataReader(shpFile, _geometryFactory);
+            var header = reader.DbaseHeader;
+
+            while (reader.Read())
+            {
+                var geometry = reader.Geometry;
+                var values = new object[reader.FieldCount];
+                reader.GetValues(values);
+                var attrs = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+                for (int i = 0; i < header.NumFields; i++)
+                {
+                    attrs[header.Fields[i].Name] = values[i];
+                }
+
+                _regions.Add((geometry, attrs));
+            }
+        }
+
+        public IReadOnlyDictionary<string, object>? GetRegion(double lat, double lon)
+        {
+            var pt = _geometryFactory.CreatePoint(new Coordinate(lon, lat)); // lon/x, lat/y
+            var match = _regions.FirstOrDefault(r => r.Shape != null && r.Shape.Contains(pt));
+            return match.Attributes;
+        }
+
+        public string? Classify(double lat, double lon)
+        {
+            var region = GetRegion(lat, lon);
+            if (region == null) return null;
+
+            // Prefer common wind zone field names
+            string? zoneValue = null;
+            string[] candidateFields = { "wind_zone", "windzone", "zone", "WIND_ZONE", "WINDZONE", "ZONE" };
+
+            foreach (var field in candidateFields)
+            {
+                if (region.TryGetValue(field, out var value) && value != null)
+                {
+                    zoneValue = value.ToString();
+                    break;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(zoneValue))
+            {
+                // fallback: first non-null attribute with digits
+                foreach (var value in region.Values)
+                {
+                    var str = value?.ToString();
+                    if (string.IsNullOrWhiteSpace(str)) continue;
+                    if (Regex.IsMatch(str.Trim(), "^\\d+"))
+                    {
+                        zoneValue = str.Trim();
+                        break;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(zoneValue))
                 return null;
 
-            var region = value.ToString()?.Trim();
-            return string.IsNullOrWhiteSpace(region) ? null : region;
+            var parsedZone = ParseWindZone(zoneValue);
+            return parsedZone > 0 ? parsedZone.ToString() : zoneValue.Trim();
         }
 
-        return null;
-    }
-
-    public object DebugInfo()
-    {
-        EnsureLoaded();
-
-        return new
+        public object DebugInfo()
         {
-            zipExists = File.Exists(_settings.WindRegionZipPath),
-            path = _settings.WindRegionZipPath,
-            extractDir = _extractDir,
-            shpPath = _shpPath,
-            loaded = _loaded,
-            featureCount = _features.Count,
-            fieldNames = _fieldNames,
-            chosenRegionField = _regionField,
-            loadError = _loadError,
-            sampleAttributes = GetSampleAttributes()
-        };
-    }
-
-    private void EnsureLoaded()
-    {
-        if (_loaded)
-            return;
-
-        try
-        {
-            if (!File.Exists(_settings.WindRegionZipPath))
-                throw new FileNotFoundException($"Wind region zip not found: {_settings.WindRegionZipPath}");
-
-            _extractDir = Path.Combine(
-                Path.GetTempPath(),
-                "AhdApi_WindRegions",
-                "as1170windzones");
-
-            if (Directory.Exists(_extractDir))
-                Directory.Delete(_extractDir, recursive: true);
-
-            Directory.CreateDirectory(_extractDir);
-
-            ZipFile.ExtractToDirectory(_settings.WindRegionZipPath, _extractDir, overwriteFiles: true);
-
-            _shpPath = Directory
-                .GetFiles(_extractDir, "*.shp", SearchOption.AllDirectories)
-                .FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(_shpPath))
-                throw new Exception("No .shp file found after extracting wind_regions.zip.");
-
-            _features = Shapefile.ReadAllFeatures(_shpPath).ToList();
-
-            if (_features.Count == 0)
-                throw new Exception("The shapefile loaded successfully but contained zero features.");
-
-            _fieldNames = _features
-                .First()
-                .Attributes
-                .GetNames()
-                .ToList();
-
-            _regionField = DetectRegionField(_features);
-
-            _loaded = true;
-        }
-        catch (Exception ex)
-        {
-            _loadError = ex.Message;
-            _loaded = true;
-        }
-    }
-
-    private static string? DetectRegionField(List<IFeature> features)
-    {
-        if (features.Count == 0)
-            return null;
-
-        var names = features.First().Attributes.GetNames().ToList();
-
-        string[] preferredNames =
-        {
-            "REGION",
-            "WINDREGION",
-            "WIND_REGION",
-            "ZONE",
-            "ZONENAME",
-            "CODE",
-            "CLASS"
-        };
-
-        foreach (var preferred in preferredNames)
-        {
-            var exact = names.FirstOrDefault(n => string.Equals(n, preferred, StringComparison.OrdinalIgnoreCase));
-            if (exact != null)
-                return exact;
-        }
-
-        var regex = new Regex(@"^(A|B|C|D)(\d+)?$", RegexOptions.IgnoreCase);
-
-        string? bestField = null;
-        int bestScore = -1;
-
-        foreach (var field in names)
-        {
-            int score = 0;
-
-            foreach (var feature in features.Take(200))
+            return new
             {
-                var raw = feature.Attributes[field]?.ToString()?.Trim();
-                if (string.IsNullOrWhiteSpace(raw))
-                    continue;
-
-                if (regex.IsMatch(raw))
-                    score++;
-            }
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestField = field;
-            }
+                dataPath,
+                loaded = _regions.Count > 0,
+                regionCount = _regions.Count
+            };
         }
 
-        return bestScore > 0 ? bestField : names.FirstOrDefault();
+        public static int ParseWindZone(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return 0;
+            var m = Regex.Match(code, @"^(\d+)", RegexOptions.IgnoreCase);
+            return m.Success && int.TryParse(m.Groups[1].Value, out var v) ? v : 0;
+        }
     }
-
-    private Dictionary<string, object?>? GetSampleAttributes()
-    {
-        var first = _features.FirstOrDefault();
-        if (first == null)
-            return null;
-
-        var result = new Dictionary<string, object?>();
-
-        foreach (var name in first.Attributes.GetNames())
-            result[name] = first.Attributes[name];
-
-        return result;
-    }
-}
