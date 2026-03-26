@@ -130,3 +130,6 @@ C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\d988a2440a8180ce\obj\Debug\net1
 C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\d988a2440a8180ce\obj\Debug\net10.0\AhdApi.csproj.Up2Date
 C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\d988a2440a8180ce\obj\Debug\net10.0\AhdApi.genruntimeconfig.cache
 C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\d988a2440a8180ce\obj\Debug\net10.0\ref\AhdApi.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\NetTopologySuite.IO.Esri.Shapefile.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\NetTopologySuite.IO.GeoJSON.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Newtonsoft.Json.dll

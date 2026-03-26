@@ -65,7 +65,7 @@ public class WindRegionService
         public IReadOnlyDictionary<string, object>? GetRegion(double lat, double lon)
         {
             var pt = _geometryFactory.CreatePoint(new Coordinate(lon, lat)); // lon/x, lat/y
-            var match = _regions.FirstOrDefault(r => r.Shape != null && r.Shape.Contains(pt));
+            var match = _regions.FirstOrDefault(r => r.Shape != null && r.Shape.Covers(pt));
             return match.Attributes;
         }
 
@@ -76,7 +76,21 @@ public class WindRegionService
 
             // Prefer common wind zone field names
             string? zoneValue = null;
-            string[] candidateFields = { "wind_zone", "windzone", "zone", "WIND_ZONE", "WINDZONE", "ZONE" };
+            string[] candidateFields =
+            {
+                "region",
+                "wind_region",
+                "windregion",
+                "wind_zone",
+                "windzone",
+                "zone",
+                "REGION",
+                "WIND_REGION",
+                "WINDREGION",
+                "WIND_ZONE",
+                "WINDZONE",
+                "ZONE"
+            };
 
             foreach (var field in candidateFields)
             {
@@ -89,14 +103,16 @@ public class WindRegionService
 
             if (string.IsNullOrWhiteSpace(zoneValue))
             {
-                // fallback: first non-null attribute with digits
+                // fallback: first non-null attribute matching common wind region codes
                 foreach (var value in region.Values)
                 {
                     var str = value?.ToString();
                     if (string.IsNullOrWhiteSpace(str)) continue;
-                    if (Regex.IsMatch(str.Trim(), "^\\d+"))
+                    var trimmed = str.Trim();
+                    if (Regex.IsMatch(trimmed, @"^[ABCD](\d+)?$", RegexOptions.IgnoreCase) ||
+                        Regex.IsMatch(trimmed, @"^\d+"))
                     {
-                        zoneValue = str.Trim();
+                        zoneValue = trimmed;
                         break;
                     }
                 }
