@@ -56,7 +56,9 @@ public class WindRegionService
 
                 for (int i = 0; i < header.NumFields; i++)
                 {
-                    attrs[header.Fields[i].Name] = values[i];
+                    // ShapefileDataReader includes the geometry in ordinal 0, while the
+                    // DBF header fields start at the first attribute column.
+                    attrs[header.Fields[i].Name] = values[i + 1];
                 }
 
                 _regions.Add((geometry, attrs));
