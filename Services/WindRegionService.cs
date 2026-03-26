@@ -139,8 +139,7 @@ public class WindRegionService
             if (string.IsNullOrWhiteSpace(zoneValue))
                 return null;
 
-            var parsedZone = ParseWindZone(zoneValue);
-            return parsedZone > 0 ? parsedZone.ToString() : zoneValue.Trim();
+            return NormalizeWindRegion(zoneValue);
         }
 
         public object DebugInfo()
@@ -153,10 +152,19 @@ public class WindRegionService
             };
         }
 
-        public static int ParseWindZone(string code)
+        public static string? NormalizeWindRegion(string? code)
         {
-            if (string.IsNullOrWhiteSpace(code)) return 0;
-            var m = Regex.Match(code, @"^(\d+)", RegexOptions.IgnoreCase);
-            return m.Success && int.TryParse(m.Groups[1].Value, out var v) ? v : 0;
+            if (string.IsNullOrWhiteSpace(code)) return null;
+
+            var trimmed = code.Trim().ToUpperInvariant();
+            var regionMatch = Regex.Match(trimmed, @"^[ABCD](\d+)?$", RegexOptions.IgnoreCase);
+            if (regionMatch.Success)
+                return trimmed;
+
+            var numericMatch = Regex.Match(trimmed, @"^(\d+)$", RegexOptions.IgnoreCase);
+            if (numericMatch.Success)
+                return numericMatch.Groups[1].Value;
+
+            return trimmed;
         }
     }
