@@ -12,6 +12,7 @@ namespace AhdApi.Services;
 
 public class WindRegionService
 {
+    private const double NearestRegionFallbackDistanceDegrees = 0.2;
     private readonly string dataPath;
     private readonly GeometryFactory _geometryFactory = new(new PrecisionModel(), 4326);
     private readonly List<(Geometry Shape, IReadOnlyDictionary<string, object> Attributes)> _regions = new();
@@ -66,7 +67,24 @@ public class WindRegionService
         {
             var pt = _geometryFactory.CreatePoint(new Coordinate(lon, lat)); // lon/x, lat/y
             var match = _regions.FirstOrDefault(r => r.Shape != null && r.Shape.Covers(pt));
-            return match.Attributes;
+            if (match.Attributes != null)
+                return match.Attributes;
+
+            // Some coordinates fall just offshore or on polygon seams. In that case,
+            // use the nearest region if it is still reasonably close to the point.
+            var nearest = _regions
+                .Where(r => r.Shape != null)
+                .Select(r => new
+                {
+                    r.Attributes,
+                    Distance = r.Shape!.Distance(pt)
+                })
+                .OrderBy(r => r.Distance)
+                .FirstOrDefault();
+
+            return nearest != null && nearest.Distance <= NearestRegionFallbackDistanceDegrees
+                ? nearest.Attributes
+                : null;
         }
 
         public string? Classify(double lat, double lon)
