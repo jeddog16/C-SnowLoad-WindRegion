@@ -981,7 +981,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\JedArmstrong\\.nuget\\packages\\": {}
+    "c:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -989,7 +989,7 @@
       "projectUniqueName": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
       "projectName": "AhdApi",
       "projectPath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
-      "packagesPath": "C:\\Users\\JedArmstrong\\.nuget\\packages\\",
+      "packagesPath": "c:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [

@@ -6,6 +6,9 @@ public class AppSettings
     public string AusGeoidGtxPath { get; set; } = "Data/AUSGeoid2020_20180201.gtx";
     public string SnowRegionXlsxPath { get; set; } = "Data/snowload.xlsx";
     public string WindRegionZipPath { get; set; } = "Data/wind_regions.zip";
+    public string AusGeoidGtxUrl { get; set; } = "";
+    public string SnowRegionXlsxUrl { get; set; } = "";
+    public string WindRegionZipUrl { get; set; } = "";
 
     public string GaLidarIdentifyUrl { get; set; } = "";
     public string GaSrtmIdentifyUrl { get; set; } = "";

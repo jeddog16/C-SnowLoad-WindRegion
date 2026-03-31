@@ -1,0 +1,165 @@
+# AHD Elevation API - Detailed Technical Description
+
+## What This API Does
+
+This is an ASP.NET Core web API that provides Australian Height Datum (AHD) elevation data and regional classification for geographic coordinates. It serves as a bridge between raw geographic data and standardized Australian elevation/region information used in construction, surveying, and engineering.
+
+## Core Functionality
+
+The API has 5 main endpoints:
+
+1. **`/health`** - Simple health check
+2. **`/ahd`** - Gets AHD elevation from DEM (Digital Elevation Model) data
+3. **`/ahd_gnss`** - Converts GNSS ellipsoid heights to AHD (currently incomplete)
+4. **`/ahd_from_nmea_gga`** - Parses NMEA GPS messages and converts to AHD
+5. **`/wind_debug`** - Debug info for loaded datasets
+
+## How It Works: Step-by-Step Breakdown
+
+### 1. **NMEA GPS Data Processing** (`/ahd_from_nmea_gga`)
+
+When you send a raw NMEA GGA sentence like:
+```
+$GPGGA,123456.00,3350.1234,S,15112.5678,E,1,08,1.0,123.4,M,25.0,M,,*47
+```
+
+**Step 1: Parse the NMEA sentence**
+- Splits the comma-separated values
+- Extracts latitude: `3350.1234,S` (33°50.1234' South)
+- Extracts longitude: `15112.5678,E` (151°12.5678' East)
+- Extracts altitude above geoid: `123.4,M` (123.4 meters)
+- Extracts geoid separation: `25.0,M` (25.0 meters)
+
+**Step 2: Convert NMEA coordinates to decimal degrees**
+```csharp
+// Convert 3350.1234 to decimal degrees
+double value = 3350.1234;
+int degrees = (int)(value / 100);        // 33 degrees
+double minutes = value - (degrees * 100); // 50.1234 minutes
+double decimalDegrees = degrees + (minutes / 60.0); // 33 + (50.1234/60) = 33.83539°
+// Apply southern hemisphere: -33.83539°
+```
+
+**Step 3: Calculate ellipsoid height**
+```csharp
+double ellipsoidHeight = altitudeAboveGeoid + geoidSeparation;
+// 123.4m + 25.0m = 148.4m above WGS84 ellipsoid
+```
+
+### 2. **DEM-Based AHD Elevation** (`/ahd`)
+
+For coordinates like `lat=-33.86, lon=151.21`:
+
+**Step 1: Try GA LiDAR first**
+- Constructs ArcGIS REST API identify request
+- Creates a small bounding box around the point (±0.01 degrees)
+- Calls: `https://services.ga.gov.au/gis/rest/services/.../identify?f=json&geometry={"x":151.21,"y":-33.86}&...`
+- Parses JSON response for elevation value
+
+**Step 2: Fallback to GA SRTM if LiDAR fails**
+- Same process but calls SRTM (Shuttle Radar Topography Mission) service
+- SRTM provides coarser resolution but global coverage
+
+**Step 3: Return AHD elevation**
+- The elevation from these services is already in AHD datum
+- No conversion needed - direct return
+
+### 3. **GNSS to AHD Conversion** (`/ahd_gnss`)
+
+**Current Status: BROKEN/INCOMPLETE**
+
+This endpoint should:
+1. Take ellipsoid height (WGS84) + coordinates
+2. Look up geoid separation from `AUSGeoid2020_20180201.gtx` file
+3. Calculate: `ahdHeight = ellipsoidHeight - geoidSeparation`
+
+But currently it just returns `ahdM = ellipsoidHeight` (wrong!) and `nAhdM = 0` (also wrong).
+
+### 4. **Wind Region Classification**
+
+**Step 1: Load shapefile data**
+- Reads `as1170windzones.shp` and related files
+- Creates geometry objects for each wind zone polygon
+- Stores attributes like zone codes (A1, B2, C3, etc.)
+
+**Step 2: Point-in-polygon test**
+```csharp
+var point = CreatePoint(longitude, latitude);
+var matchingRegion = regions.FirstOrDefault(r => r.Shape.Covers(point));
+```
+
+**Step 3: Extract zone code**
+- Looks for fields named "region", "wind_region", "zone", etc.
+- Applies regex to find patterns like `A1`, `B2`, `C3`
+- Normalizes to standard format
+
+**Step 4: Fallback for edge cases**
+- If point falls on polygon boundary or just offshore
+- Finds nearest region within 0.2 degrees (~22km)
+- Uses that region's classification
+
+### 5. **Snow Load Region Classification**
+
+**Step 1: Load Excel data**
+- Reads `snowload.xlsx` with bounding boxes
+- Each row has: Snow_Load, MinLat, MaxLat, MinLon, MaxLon
+
+**Step 2: Bounding box check**
+```csharp
+if (lat >= box.MinLat && lat <= box.MaxLat &&
+    lon >= box.MinLon && lon <= box.MaxLon) {
+    return box.SnowRegion;
+}
+```
+
+**Step 3: Return snow load category**
+- Returns values like "0.5 kPa", "1.0 kPa", etc.
+- Or null if outside all regions
+
+## Data Sources & Dependencies
+
+**Local Files (in `/Data/`):**
+- `AUSGeoid2020_20180201.gtx` - Geoid model for GNSS→AHD conversion (not used yet)
+- `snowload.xlsx` - Snow load region boundaries
+- `wind_regions_unzipped/` - Shapefiles for wind zones
+
+**External APIs:**
+- GA LiDAR: `https://services.ga.gov.au/.../identify` (high-res elevation)
+- GA SRTM: `https://services.ga.gov.au/.../identify` (backup elevation)
+
+## Architecture Flow
+
+```
+Request → ApiKeyMiddleware → Controller → Service Layer → Data/External APIs
+                      ↓
+                Authentication Check
+                      ↓
+            Business Logic Processing
+                      ↓
+            Response with AHD + Regions
+```
+
+## Current Issues & Limitations
+
+1. **GNSS conversion doesn't work** - No geoid correction implemented
+2. **Requires internet** - DEM calls fail without network
+3. **Local file dependencies** - Must bundle data files
+4. **No caching** - Every request hits external APIs
+5. **Wind regions only** - No other regional classifications
+
+## For Your Presentation
+
+**Key Points to Emphasize:**
+- This bridges modern GNSS data to traditional AHD elevations
+- Combines multiple data sources (satellite, government, local files)
+- Handles Australian-specific standards (AS1288, AS1170)
+- Critical for construction/surveying accuracy
+
+**Demo Flow:**
+1. Show NMEA parsing → decimal conversion
+2. Demo `/ahd` endpoint with Sydney coordinates
+3. Show wind/snow region classification
+4. Explain the GNSS gap (what needs to be fixed)
+
+This should give you a solid foundation to explain the technical details to your audience!</content>
+<parameter name="filePath">c:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\description.txt

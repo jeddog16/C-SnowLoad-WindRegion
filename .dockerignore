@@ -1,0 +1,12 @@
+.git
+.gitignore
+.dotnet
+bin
+obj
+README.md
+*.user
+*.suo
+*.swp
+*.tmp
+*.log
+.env

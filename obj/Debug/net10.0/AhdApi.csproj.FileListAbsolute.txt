@@ -133,3 +133,14 @@ C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\d988a2440a8180ce\obj\Debug\net1
 C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\NetTopologySuite.IO.Esri.Shapefile.dll
 C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\NetTopologySuite.IO.GeoJSON.dll
 C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Newtonsoft.Json.dll
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\AUSGeoid2020_20180201.gtx
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\snowload.xlsx
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions.zip
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.cpg
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.dbf
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.prj
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.sbn
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.sbx
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.shp
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.shp.xml
+C:\Users\JedArmstrong\Documents\GitHub\C-SnowLoad-WindRegion\bin\Debug\net10.0\Data\wind_regions_unzipped\as1170windzones.shx

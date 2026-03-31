@@ -18,11 +18,68 @@ ASP.NET Core API for:
 
 - `GET /health`
 - `GET /ahd`
+- `POST /ahd_bulk_csv`
 - `GET /ahd_gnss`
 - `POST /ahd_from_nmea_gga`
 - `GET /wind_debug`
 - Swagger UI
 - API key protection with `X-API-Key`
+
+## Calculations
+
+The API performs several types of calculations to provide AHD elevation and region data:
+
+### NMEA Coordinate Conversion
+**Location**: `NmeaService.NmeaToDecimal()` in `Services/NmeaServices.cs`
+
+Converts NMEA format coordinates (DDMM.MMMM) to decimal degrees:
+```csharp
+double value = double.Parse(coord, CultureInfo.InvariantCulture);
+int degrees = (int)(value / 100);
+double minutes = value - (degrees * 100);
+double dec = degrees + (minutes / 60.0);
+```
+
+### Ellipsoid Height Calculation
+**Location**: `NmeaService.ParseGga()` in `Services/NmeaServices.cs`
+
+Calculates ellipsoid height from NMEA GGA altitude and geoid separation:
+```csharp
+double hEllipsoidM = altAboveGeoidM + geoidSepM;
+```
+
+### DEM Elevation Sampling
+**Location**: `DemService.SampleArcGisIdentifyAsync()` in `Services/DemService.cs`
+
+Queries ArcGIS REST API services for elevation data:
+- Constructs identify requests with geometry and map extent
+- Parses JSON responses to extract elevation values
+- Falls back from GA LiDAR to GA SRTM if LiDAR data unavailable
+
+### Snow Region Classification
+**Location**: `SnowRegionService.Classify()` in `Services/SnowRegionService.cs`
+
+Performs bounding box checks against Excel spreadsheet data:
+```csharp
+if (lat >= box.MinLat && lat <= box.MaxLat &&
+    lon >= box.MinLon && lon <= box.MaxLon)
+```
+
+### Wind Region Classification
+**Location**: `WindRegionService.Classify()` in `Services/WindRegionService.cs`
+
+Uses NetTopologySuite for point-in-polygon operations:
+- Loads shapefile geometries and attributes
+- Performs spatial intersection tests with `Shape.Covers(point)`
+- Falls back to nearest region within 0.2 degrees if no exact match
+- Applies regex pattern matching for wind zone codes
+
+### GNSS to AHD Conversion
+**Status**: Not implemented - placeholder only
+
+**Location**: `GnssService.GnssToAhd()` in `Services/GnssService.cs`
+
+Currently just sets `AhdM = hEllipsoidM` without geoid correction. Should use `AUSGeoid2020_20180201.gtx` for proper ellipsoid-to-AHD transformation.
 
 ## Project structure
 
@@ -144,6 +201,48 @@ Typical response fields:
 - `windRegion`
 - `snowRegion`
 - `isSnowLoadRegion`
+
+### `POST /ahd_bulk_csv`
+
+Uploads a CSV file and returns a CSV of bulk AHD results.
+
+Request:
+
+- `multipart/form-data`
+- form field name: `file`
+- query params:
+- `debug` optional
+- `require_lidar` optional
+
+Input CSV requirements:
+
+- must include headers `lat` and `lon`
+- additional columns are ignored
+
+Output CSV includes the same core fields returned by `GET /ahd` per row:
+
+- `code_version`, `h_ellipsoid_m`, `ahd_m`, `n_ahd_m`, `method`
+- `vertical_datum`, `source`, `source_type`, `upstream`
+- `wind_region`, `snow_region`, `is_snow_load_region`, `wind_region_error`
+- `extra` (JSON string when debug data exists), plus an `error` column
+
+Example input CSV:
+
+```csv
+lat,lon
+-33.8688,151.2093
+-37.8136,144.9631
+```
+
+PowerShell example:
+
+```powershell
+$headers = @{ "X-API-Key" = "your-api-key" }
+$form = @{
+  file = Get-Item ".\sample-points.csv"
+}
+Invoke-WebRequest -Method Post -Uri "http://localhost:5151/ahd_bulk_csv" -Headers $headers -Form $form -OutFile ".\ahd_bulk_results.csv"
+```
 
 ### `GET /ahd_gnss`
 

@@ -7,6 +7,19 @@ namespace AhdApi.Services;
 
 public class DemService
 {
+    private static readonly string[] PreferredElevationFieldNames =
+    {
+        "value",
+        "pixel value",
+        "pixel_value",
+        "elevation",
+        "elev",
+        "z",
+        "gridcode",
+        "height",
+        "ahd"
+    };
+
     private readonly HttpClient _httpClient;
     private readonly AppSettings _settings;
     private readonly RegionService _regionService;
@@ -34,7 +47,7 @@ public class DemService
 
         try
         {
-            double? lidarElevation = await SampleArcGisIdentifyAsync(_settings.GaLidarIdentifyUrl, lat, lon);
+            double? lidarElevation = await SampleGaLidarAsync(lat, lon, lidarAttempt);
 
             if (lidarElevation.HasValue)
             {
@@ -150,7 +163,72 @@ public class DemService
         }));
     }
 
-    private async Task<double?> SampleArcGisIdentifyAsync(string identifyUrl, double lat, double lon)
+    private async Task<double?> SampleGaLidarAsync(double lat, double lon, Dictionary<string, object> lidarAttempt)
+    {
+        var probes = new List<Dictionary<string, object>>();
+        lidarAttempt["identify_probes"] = probes;
+
+        // ArcGIS MapServer identify behaviour can vary by layer visibility and render context.
+        // Probe a few request shapes before giving up and falling back to SRTM.
+        var probeConfigs = new[]
+        {
+            new { Layers = "all", Tolerance = 1, Delta = 0.010, ImageDisplay = "400,400,96" },
+            new { Layers = "top", Tolerance = 2, Delta = 0.005, ImageDisplay = "1024,1024,96" },
+            new { Layers = "all", Tolerance = 4, Delta = 0.002, ImageDisplay = "2048,2048,96" }
+        };
+
+        foreach (var config in probeConfigs)
+        {
+            var probe = new Dictionary<string, object>
+            {
+                ["layers"] = config.Layers,
+                ["tolerance"] = config.Tolerance,
+                ["delta"] = config.Delta,
+                ["imageDisplay"] = config.ImageDisplay
+            };
+
+            try
+            {
+                double? elevation = await SampleArcGisIdentifyAsync(
+                    _settings.GaLidarIdentifyUrl,
+                    lat,
+                    lon,
+                    config.Layers,
+                    config.Tolerance,
+                    config.Delta,
+                    config.ImageDisplay);
+
+                if (elevation.HasValue)
+                {
+                    probe["success"] = true;
+                    probe["elevation"] = elevation.Value;
+                    probes.Add(probe);
+                    return elevation;
+                }
+
+                probe["success"] = false;
+                probe["reason"] = "No elevation returned.";
+                probes.Add(probe);
+            }
+            catch (Exception ex)
+            {
+                probe["success"] = false;
+                probe["reason"] = ex.Message;
+                probes.Add(probe);
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<double?> SampleArcGisIdentifyAsync(
+        string identifyUrl,
+        double lat,
+        double lon,
+        string layers = "all",
+        int tolerance = 1,
+        double delta = 0.01,
+        string imageDisplay = "400,400,96")
     {
         string geometry = JsonSerializer.Serialize(new
         {
@@ -159,7 +237,6 @@ public class DemService
             spatialReference = new { wkid = 4326 }
         });
 
-        double delta = 0.01;
         string mapExtent = string.Join(",",
             (lon - delta).ToString(CultureInfo.InvariantCulture),
             (lat - delta).ToString(CultureInfo.InvariantCulture),
@@ -172,10 +249,10 @@ public class DemService
             $"&geometry={Uri.EscapeDataString(geometry)}" +
             $"&geometryType=esriGeometryPoint" +
             $"&sr=4326" +
-            $"&layers=all" +
-            $"&tolerance=1" +
+            $"&layers={Uri.EscapeDataString(layers)}" +
+            $"&tolerance={tolerance.ToString(CultureInfo.InvariantCulture)}" +
             $"&mapExtent={Uri.EscapeDataString(mapExtent)}" +
-            $"&imageDisplay=400,400,96" +
+            $"&imageDisplay={Uri.EscapeDataString(imageDisplay)}" +
             $"&returnGeometry=false";
 
         using var response = await _httpClient.GetAsync(url);
@@ -202,24 +279,69 @@ public class DemService
         {
             if (result.TryGetProperty("value", out JsonElement valueElement))
             {
-                string? valueString = valueElement.GetString();
-
-                if (double.TryParse(valueString, NumberStyles.Any, CultureInfo.InvariantCulture, out double value))
+                if (TryParseNumericElement(valueElement, out double value))
                     return value;
             }
 
             if (result.TryGetProperty("attributes", out JsonElement attributes))
             {
+                foreach (string preferredName in PreferredElevationFieldNames)
+                {
+                    foreach (JsonProperty prop in attributes.EnumerateObject())
+                    {
+                        if (!prop.Name.Equals(preferredName, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        if (TryParseNumericElement(prop.Value, out double preferredValue))
+                            return preferredValue;
+                    }
+                }
+
                 foreach (JsonProperty prop in attributes.EnumerateObject())
                 {
-                    string raw = prop.Value.ToString();
+                    if (IsLikelyIdentifierField(prop.Name))
+                        continue;
 
-                    if (double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double attrValue))
+                    if (TryParseNumericElement(prop.Value, out double attrValue))
                         return attrValue;
                 }
             }
         }
 
         return null;
+    }
+
+    private static bool TryParseNumericElement(JsonElement element, out double value)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Number:
+                return element.TryGetDouble(out value);
+
+            case JsonValueKind.String:
+                return double.TryParse(
+                    element.GetString(),
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out value);
+
+            default:
+                value = default;
+                return false;
+        }
+    }
+
+    private static bool IsLikelyIdentifierField(string fieldName)
+    {
+        string lowered = fieldName.ToLowerInvariant();
+
+        return lowered.Contains("objectid")
+            || lowered.Equals("id")
+            || lowered.EndsWith("_id")
+            || lowered.Equals("fid")
+            || lowered.Equals("oid")
+            || lowered.Contains("shape_length")
+            || lowered.Contains("shape_area")
+            || lowered.Contains("class");
     }
 }
