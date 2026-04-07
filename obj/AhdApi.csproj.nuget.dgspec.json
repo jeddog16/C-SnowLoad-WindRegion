@@ -10,7 +10,7 @@
         "projectUniqueName": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
         "projectName": "AhdApi",
         "projectPath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
-        "packagesPath": "c:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\JedArmstrong\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
@@ -44,6 +44,10 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "dependencies": {
+            "BitMiracle.LibTiff.NET": {
+              "target": "Package",
+              "version": "[2.4.660, )"
+            },
             "ClosedXML": {
               "target": "Package",
               "version": "[0.105.0, )"

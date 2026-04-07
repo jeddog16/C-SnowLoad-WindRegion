@@ -2,6 +2,19 @@
   "version": 3,
   "targets": {
     "net10.0": {
+      "BitMiracle.LibTiff.NET/2.4.660": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/BitMiracle.LibTiff.NET.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/BitMiracle.LibTiff.NET.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "ClosedXML/0.105.0": {
         "type": "package",
         "dependencies": {
@@ -331,6 +344,19 @@
     }
   },
   "libraries": {
+    "BitMiracle.LibTiff.NET/2.4.660": {
+      "sha512": "Drd0fDFVrR3v19IJtqiDVnjgcVZoGlzFw/CYni1OQ5/xVYvjPNp18E9eu+dH/RmpIUw6Pn/JhE/H+Yc3kHI89A==",
+      "type": "package",
+      "path": "bitmiracle.libtiff.net/2.4.660",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "bitmiracle.libtiff.net.2.4.660.nupkg.sha512",
+        "bitmiracle.libtiff.net.nuspec",
+        "lib/netstandard2.0/BitMiracle.LibTiff.NET.dll",
+        "lib/netstandard2.0/BitMiracle.LibTiff.NET.xml"
+      ]
+    },
     "ClosedXML/0.105.0": {
       "sha512": "U0hAdnYyPvF7TqHMFloxrS7pmozab79tFFF4c/bgPtqeelUs7ILpUd3r3c7C0a/DXsUZb3k1n4Pf7Q2LMyMQOg==",
       "type": "package",
@@ -971,6 +997,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "BitMiracle.LibTiff.NET >= 2.4.660",
       "ClosedXML >= 0.105.0",
       "Microsoft.AspNetCore.OpenApi >= 10.0.5",
       "NetTopologySuite >= 2.6.0",
@@ -981,7 +1008,7 @@
     ]
   },
   "packageFolders": {
-    "c:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\.nuget\\packages\\": {}
+    "C:\\Users\\JedArmstrong\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -989,7 +1016,7 @@
       "projectUniqueName": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
       "projectName": "AhdApi",
       "projectPath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\AhdApi.csproj",
-      "packagesPath": "c:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\JedArmstrong\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\JedArmstrong\\Documents\\GitHub\\C-SnowLoad-WindRegion\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
@@ -1023,6 +1050,10 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
+          "BitMiracle.LibTiff.NET": {
+            "target": "Package",
+            "version": "[2.4.660, )"
+          },
           "ClosedXML": {
             "target": "Package",
             "version": "[0.105.0, )"

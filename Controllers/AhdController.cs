@@ -64,11 +64,12 @@ public class AhdController : ControllerBase
         [FromQuery] double lat,
         [FromQuery] double lon,
         [FromQuery] bool debug = false,
-        [FromQuery] bool require_lidar = false)
+        [FromQuery] bool require_lidar = false,
+        [FromQuery(Name = "dem_mode")] DemLookupMode? demMode = null)
     {
         try
         {
-            var result = await _demService.SampleBestDemAsync(lat, lon, debug, require_lidar);
+            var result = await _demService.SampleBestDemAsync(lat, lon, debug, require_lidar, ToDemModeString(demMode));
             return Ok(result);
         }
         catch (Exception ex)
@@ -158,7 +159,8 @@ public class AhdController : ControllerBase
     public async Task<IActionResult> AhdBulkCsv(
         IFormFile file,
         [FromQuery] bool debug = false,
-        [FromQuery(Name = "require_lidar")] bool requireLidar = false)
+        [FromQuery(Name = "require_lidar")] bool requireLidar = false,
+        [FromQuery(Name = "dem_mode")] DemLookupMode? demMode = null)
     {
         if (file == null || file.Length == 0)
         {
@@ -205,6 +207,8 @@ public class AhdController : ControllerBase
             "source",
             "source_type",
             "upstream",
+            "vertical_accuracy_95_m",
+            "vertical_accuracy_note",
             "wind_region",
             "snow_region",
             "is_snow_load_region",
@@ -248,7 +252,7 @@ public class AhdController : ControllerBase
 
             try
             {
-                var result = await _demService.SampleBestDemAsync(lat, lon, debug, requireLidar);
+                var result = await _demService.SampleBestDemAsync(lat, lon, debug, requireLidar, ToDemModeString(demMode));
                 string extraJson = result.Extra == null ? "" : JsonSerializer.Serialize(result.Extra);
 
                 AppendCsvRow(
@@ -265,6 +269,8 @@ public class AhdController : ControllerBase
                     result.Source ?? "",
                     result.SourceType ?? "",
                     result.Upstream ?? "",
+                    result.VerticalAccuracy95M?.ToString(CultureInfo.InvariantCulture) ?? "",
+                    result.VerticalAccuracyNote ?? "",
                     result.WindRegion ?? "",
                     result.SnowRegion ?? "",
                     result.IsSnowLoadRegion.ToString().ToLowerInvariant(),
@@ -279,6 +285,8 @@ public class AhdController : ControllerBase
                     rowNumber.ToString(CultureInfo.InvariantCulture),
                     lat.ToString(CultureInfo.InvariantCulture),
                     lon.ToString(CultureInfo.InvariantCulture),
+                    "",
+                    "",
                     "",
                     "",
                     "",
@@ -338,6 +346,17 @@ public class AhdController : ControllerBase
 
         values.Add(current.ToString());
         return values;
+    }
+
+    private static string? ToDemModeString(DemLookupMode? mode)
+    {
+        return mode switch
+        {
+            DemLookupMode.Hybrid => "hybrid",
+            DemLookupMode.R2Only => "r2_only",
+            DemLookupMode.GaSrtmIdentify => "ga_srtm_identify",
+            _ => null
+        };
     }
 
     private static string CsvEscape(string? value)

@@ -293,6 +293,75 @@ Swagger is available locally at:
 - `http://localhost:5151/swagger`
 - `https://localhost:7150/swagger`
 
+## Cloudflare deployment
+
+This API is a better fit for Cloudflare Containers than for Cloudflare Pages or a plain Worker because it is a full ASP.NET Core app with middleware, Swagger, local data files, and a Dockerfile already present.
+
+Files added for Cloudflare deployment:
+
+- `wrangler.jsonc`
+- `package.json`
+- `cloudflare-worker/src/index.js`
+
+### What this setup does
+
+- builds the existing `Dockerfile`
+- deploys it to Cloudflare Containers
+- fronts it with a Worker
+- passes `AppSettings__ApiKey` into the container from a Worker secret
+- tells ASP.NET Core to listen on port `8080` inside the container
+
+### Prerequisites
+
+- a Cloudflare account with the Workers Paid plan
+- Docker running locally
+- Node.js installed locally
+
+Cloudflare Containers are currently in beta.
+
+### Deploy steps
+
+1. Install dependencies:
+
+```powershell
+npm install
+```
+
+2. Log into Cloudflare:
+
+```powershell
+npx wrangler login
+```
+
+3. Set the API key as a Cloudflare Worker secret:
+
+```powershell
+npx wrangler secret put API_KEY
+```
+
+4. Deploy:
+
+```powershell
+npx wrangler deploy
+```
+
+5. Open the Worker URL returned by Wrangler and use:
+
+- `/health`
+- `/swagger`
+- `/ahd?lat=-33.86&lon=151.21`
+
+### Custom domain
+
+After deployment, attach a custom domain in the Cloudflare dashboard under Workers & Pages for this Worker.
+
+### Notes
+
+- The first request can be slower because Cloudflare may need to start the container.
+- This deployment uses a single named container instance: `"default"`.
+- If you expect higher concurrency, update the Worker routing strategy and container instance selection logic.
+- Do not store the production API key in `.env` once it has been exposed. Rotate it and use `wrangler secret put`.
+
 ## Azure hosting
 
 This app can be hosted in Azure App Service. A database is not required for the current version because the app reads from local files in `Data/`.

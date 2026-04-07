@@ -13,6 +13,8 @@ public class AhdResponse
     public string? Source { get; set; }
     public string? SourceType { get; set; }
     public string? Upstream { get; set; }
+    public double? VerticalAccuracy95M { get; set; }
+    public string? VerticalAccuracyNote { get; set; }
     public string? WindRegion { get; set; }
     public string? SnowRegion { get; set; }
     public bool IsSnowLoadRegion { get; set; }

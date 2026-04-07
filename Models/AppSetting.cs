@@ -15,4 +15,12 @@ public class AppSettings
     public string NswLidarImageServer { get; set; } = "";
     public string QldLidarImageServer { get; set; } = "";
     public string VicLidarImageServer { get; set; } = "";
+
+    public bool EnableR2TileFetch { get; set; }
+    public bool R2Only { get; set; }
+    public bool PersistTileCache { get; set; }
+    public string R2TileBaseUrl { get; set; } = "";
+    public string TileCacheDir { get; set; } = "Data/tile_cache";
+    public double TileDeg { get; set; } = 0.5;
+    public string DemLookupMode { get; set; } = "hybrid";
 }

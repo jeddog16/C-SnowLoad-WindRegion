@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v10.0": {
       "AhdApi/1.0.0": {
         "dependencies": {
+          "BitMiracle.LibTiff.NET": "2.4.660",
           "ClosedXML": "0.105.0",
           "Microsoft.AspNetCore.OpenApi": "10.0.5",
           "NetTopologySuite": "2.6.0",
@@ -18,6 +19,14 @@
         },
         "runtime": {
           "AhdApi.dll": {}
+        }
+      },
+      "BitMiracle.LibTiff.NET/2.4.660": {
+        "runtime": {
+          "lib/netstandard2.0/BitMiracle.LibTiff.NET.dll": {
+            "assemblyVersion": "2.4.660.0",
+            "fileVersion": "2.4.660.0"
+          }
         }
       },
       "ClosedXML/0.105.0": {
@@ -224,6 +233,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "BitMiracle.LibTiff.NET/2.4.660": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Drd0fDFVrR3v19IJtqiDVnjgcVZoGlzFw/CYni1OQ5/xVYvjPNp18E9eu+dH/RmpIUw6Pn/JhE/H+Yc3kHI89A==",
+      "path": "bitmiracle.libtiff.net/2.4.660",
+      "hashPath": "bitmiracle.libtiff.net.2.4.660.nupkg.sha512"
     },
     "ClosedXML/0.105.0": {
       "type": "package",
