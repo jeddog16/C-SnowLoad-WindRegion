@@ -1,5 +1,6 @@
 {
   "name": "c-snowload-windregion",
+  "account_id": "9e38ae900068839b9b99032199ba877f",
   "main": "cloudflare-worker/src/index.js",
   "compatibility_date": "2026-04-07",
   "observability": {

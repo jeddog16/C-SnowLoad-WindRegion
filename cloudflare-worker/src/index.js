@@ -13,7 +13,17 @@ export class AhdApiContainer extends Container {
 
 export default {
   async fetch(request, env) {
-    const container = env.AHD_API.getByName("default");
-    return container.fetch(request);
+    const url = new URL(request.url);
+    const apiKey = url.searchParams.get("api_key");
+    let forwardedRequest = request;
+
+    if (apiKey && !request.headers.get("X-API-Key")) {
+      const headers = new Headers(request.headers);
+      headers.set("X-API-Key", apiKey);
+      forwardedRequest = new Request(request, { headers });
+    }
+
+    const container = env.AHD_API.getByName("default-v2");
+    return container.fetch(forwardedRequest);
   }
 };

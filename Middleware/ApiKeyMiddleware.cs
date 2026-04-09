@@ -28,14 +28,26 @@ public class ApiKeyMiddleware
             return;
         }
 
-        if (!context.Request.Headers.TryGetValue("X-API-Key", out var providedKey) ||
-            providedKey != _settings.ApiKey)
+        string? providedKey = null;
+
+        if (context.Request.Headers.TryGetValue("X-API-Key", out var headerKey) &&
+            !string.IsNullOrWhiteSpace(headerKey))
+        {
+            providedKey = headerKey.ToString();
+        }
+        else if (context.Request.Query.TryGetValue("api_key", out var queryKey) &&
+                 !string.IsNullOrWhiteSpace(queryKey))
+        {
+            providedKey = queryKey.ToString();
+        }
+
+        if (providedKey != _settings.ApiKey)
         {
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonSerializer.Serialize(new
             {
-                detail = "Invalid or missing API key."
+                detail = "Invalid or missing API key. Provide X-API-Key header or api_key query parameter."
             }));
             return;
         }
