@@ -75,53 +75,65 @@ public class DemService
                 TileSampleResult? tileSample = await TrySampleR2TileAsync(lat, lon);
                 if (tileSample != null)
                 {
-                    r2Attempt["success"] = true;
                     r2Attempt["elevation"] = tileSample.Elevation;
                     r2Attempt["tile"] = tileSample.TileId;
                     r2Attempt["state"] = tileSample.State;
                     r2Attempt["cache"] = tileSample.LocalPath;
                     r2Attempt["downloaded"] = tileSample.DownloadedNow;
+
+                    if (IsNearZeroLidarElevation(tileSample.Elevation))
+                    {
+                        r2Attempt["success"] = false;
+                        r2Attempt["reason"] = "LiDAR tile returned near-zero elevation; falling back to SRTM.";
+                        attempts.Add(r2Attempt);
+                    }
+                    else
+                    {
+                        r2Attempt["success"] = true;
+                        attempts.Add(r2Attempt);
+
+                        var resp = new AhdResponse
+                        {
+                            CodeVersion = "csharp-port-1.0.0",
+                            Lat = lat,
+                            Lon = lon,
+                            AhdM = tileSample.Elevation,
+                            Method = "dem",
+                            VerticalDatum = "AHD",
+                            Source = "r2-tile-cache",
+                            SourceType = "dem",
+                            Upstream = _settings.R2TileBaseUrl,
+                            VerticalAccuracy95M = 0.3,
+                            VerticalAccuracyNote = "LiDAR-derived 5m DEM class; typical vertical accuracy around 0.3 m at 95% confidence."
+                        };
+
+                        _regionService.AddRegionInfo(resp);
+
+                        if (debug)
+                        {
+                            resp.Extra = new Dictionary<string, object>
+                            {
+                                ["attempts"] = attempts
+                            };
+                        }
+
+                        return resp;
+                    }
+                }
+                else
+                {
+                    r2Attempt["success"] = false;
+                    r2Attempt["reason"] = "No matching tile/elevation value available for coordinate.";
                     attempts.Add(r2Attempt);
 
-                    var resp = new AhdResponse
+                    if (_settings.R2Only || r2OnlyMode)
                     {
-                        CodeVersion = "csharp-port-1.0.0",
-                        Lat = lat,
-                        Lon = lon,
-                        AhdM = tileSample.Elevation,
-                        Method = "dem",
-                        VerticalDatum = "AHD",
-                        Source = "r2-tile-cache",
-                        SourceType = "dem",
-                        Upstream = _settings.R2TileBaseUrl,
-                        VerticalAccuracy95M = 0.3,
-                        VerticalAccuracyNote = "LiDAR-derived 5m DEM class; typical vertical accuracy around 0.3 m at 95% confidence."
-                    };
-
-                    _regionService.AddRegionInfo(resp);
-
-                    if (debug)
-                    {
-                        resp.Extra = new Dictionary<string, object>
+                        throw new Exception(JsonSerializer.Serialize(new
                         {
-                            ["attempts"] = attempts
-                        };
+                            error = "R2-only mode enabled and no usable tile/elevation was available for this coordinate.",
+                            attempts
+                        }));
                     }
-
-                    return resp;
-                }
-
-                r2Attempt["success"] = false;
-                r2Attempt["reason"] = "No matching tile/elevation value available for coordinate.";
-                attempts.Add(r2Attempt);
-
-                if (_settings.R2Only || r2OnlyMode)
-                {
-                    throw new Exception(JsonSerializer.Serialize(new
-                    {
-                        error = "R2-only mode enabled and no tile/elevation was available for this coordinate.",
-                        attempts
-                    }));
                 }
             }
             catch (Exception ex)
@@ -137,11 +149,11 @@ public class DemService
             }
         }
 
-        if (r2OnlyMode)
+        if (_settings.R2Only || r2OnlyMode)
         {
             throw new Exception(JsonSerializer.Serialize(new
             {
-                error = "DemLookupMode=r2_only and no R2 tile/elevation was available for this coordinate.",
+                error = "R2-only mode enabled and no usable R2 tile/elevation was available for this coordinate.",
                 attempts
             }));
         }
@@ -161,41 +173,53 @@ public class DemService
 
                 if (lidarElevation.HasValue)
                 {
-                    lidarAttempt["success"] = true;
                     lidarAttempt["elevation"] = lidarElevation.Value;
-                    attempts.Add(lidarAttempt);
 
-                    var resp = new AhdResponse
+                    if (IsNearZeroLidarElevation(lidarElevation.Value))
                     {
-                        CodeVersion = "csharp-port-1.0.0",
-                        Lat = lat,
-                        Lon = lon,
-                        AhdM = lidarElevation.Value,
-                        Method = "dem",
-                        VerticalDatum = "AHD",
-                        Source = "ga-lidar",
-                        SourceType = "dem",
-                        Upstream = _settings.GaLidarIdentifyUrl,
-                        VerticalAccuracy95M = 0.3,
-                        VerticalAccuracyNote = "LiDAR-derived DEM class; typical vertical accuracy around 0.3 m at 95% confidence."
-                    };
-
-                    _regionService.AddRegionInfo(resp);
-
-                    if (debug)
-                    {
-                        resp.Extra = new Dictionary<string, object>
-                        {
-                            ["attempts"] = attempts
-                        };
+                        lidarAttempt["success"] = false;
+                        lidarAttempt["reason"] = "GA LiDAR returned near-zero elevation; falling back to SRTM.";
+                        attempts.Add(lidarAttempt);
                     }
+                    else
+                    {
+                        lidarAttempt["success"] = true;
+                        attempts.Add(lidarAttempt);
 
-                    return resp;
+                        var resp = new AhdResponse
+                        {
+                            CodeVersion = "csharp-port-1.0.0",
+                            Lat = lat,
+                            Lon = lon,
+                            AhdM = lidarElevation.Value,
+                            Method = "dem",
+                            VerticalDatum = "AHD",
+                            Source = "ga-lidar",
+                            SourceType = "dem",
+                            Upstream = _settings.GaLidarIdentifyUrl,
+                            VerticalAccuracy95M = 0.3,
+                            VerticalAccuracyNote = "LiDAR-derived DEM class; typical vertical accuracy around 0.3 m at 95% confidence."
+                        };
+
+                        _regionService.AddRegionInfo(resp);
+
+                        if (debug)
+                        {
+                            resp.Extra = new Dictionary<string, object>
+                            {
+                                ["attempts"] = attempts
+                            };
+                        }
+
+                        return resp;
+                    }
                 }
-
-                lidarAttempt["success"] = false;
-                lidarAttempt["reason"] = "No elevation returned.";
-                attempts.Add(lidarAttempt);
+                else
+                {
+                    lidarAttempt["success"] = false;
+                    lidarAttempt["reason"] = "No usable LiDAR elevation returned.";
+                    attempts.Add(lidarAttempt);
+                }
             }
             catch (Exception ex)
             {
@@ -210,7 +234,7 @@ public class DemService
         {
             throw new Exception(JsonSerializer.Serialize(new
             {
-                error = "Lidar was required, but no LiDAR source returned an elevation.",
+                error = "Lidar was required, but no LiDAR source returned a usable non-near-zero elevation.",
                 attempts
             }));
         }
@@ -559,8 +583,17 @@ public class DemService
 
                 if (elevation.HasValue)
                 {
-                    probe["success"] = true;
                     probe["elevation"] = elevation.Value;
+
+                    if (IsNearZeroLidarElevation(elevation.Value))
+                    {
+                        probe["success"] = false;
+                        probe["reason"] = "LiDAR identify returned near-zero elevation; trying next probe.";
+                        probes.Add(probe);
+                        continue;
+                    }
+
+                    probe["success"] = true;
                     probes.Add(probe);
                     return elevation;
                 }
@@ -679,6 +712,11 @@ public class DemService
                 value = default;
                 return false;
         }
+    }
+
+    private static bool IsNearZeroLidarElevation(double elevation)
+    {
+        return Math.Abs(elevation) < 1e-3;
     }
 
     private static bool IsLikelyIdentifierField(string fieldName)

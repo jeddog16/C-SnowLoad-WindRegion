@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AhdApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f6aefdd17d11327c3746009f83dc863b0ad21161")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+564a0e52893f039fb5218731f7d3b5656e934f56")]
 [assembly: System.Reflection.AssemblyProductAttribute("AhdApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AhdApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
