@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "docker:check": "node scripts/check-docker.mjs",
+    "predeploy": "npm run docker:check",
+    "predev": "npm run docker:check",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev"
   },

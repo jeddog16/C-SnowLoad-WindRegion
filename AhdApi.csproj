@@ -24,4 +24,15 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Keep local/dev data available, but do not bloat published images with
+         the unused GTX geoid file or the duplicate wind-region zip. -->
+    <Content Update="Data\AUSGeoid2020_20180201.gtx">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <Content Update="Data\wind_regions.zip">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
